@@ -2,6 +2,7 @@
 //Loads document from S3 bucket. Displays the document and bounding boxes around detected lines/words of text.
 package com.example.myapp.myapp;
 
+import java.lang.*;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.util.List;
@@ -16,14 +17,11 @@ import com.amazonaws.client.builder.AwsClientBuilder.EndpointConfiguration;
 import com.amazonaws.services.textract.AmazonTextract;
 import com.amazonaws.services.textract.AmazonTextractClientBuilder;
 import com.amazonaws.services.textract.model.Block;
-import com.amazonaws.services.textract.model.BoundingBox;
 import com.amazonaws.services.textract.model.DetectDocumentTextRequest;
 import com.amazonaws.services.textract.model.DetectDocumentTextResult;
 import com.amazonaws.services.textract.model.Document;
 import com.amazonaws.services.textract.model.S3Object;
-import com.amazonaws.services.textract.model.Point;
-import com.amazonaws.services.textract.model.Relationship;
-
+import org.json.simple.JSONObject;
 
 public class DocumentText extends JPanel {
 
@@ -64,10 +62,50 @@ public class DocumentText extends JPanel {
           }
     }
     
+    public static JSONObject objectify(DetectDocumentTextResult res) throws Exception {
+    	JSONObject ret = new JSONObject();
+    	JSONObject temp;
+    	String type, text;
+    	Float left, top;
+    	int base = 10;  //Cambion start
+    	//int base = 8;	//Imp start
+    	int ind = 1;
+    	int baseTop = 44;
+    	int danger = 100;
+    	for(Block block:res.getBlocks()) {
+    		temp = new JSONObject();
+    		type = block.getBlockType();
+    		text = block.getText();
+    		left = block.getGeometry().getBoundingBox().getLeft();
+    		top = block.getGeometry().getBoundingBox().getTop();
+    		if((type.equals("LINE")) && (Math.abs((int)(left*100)-base)<3)) {
+    			temp.put("left",(int)(left*100));
+    			temp.put("text",text);
+    			temp.put("top",top);
+    			ret.put(ind,temp);
+    			ind+=1;
+    		}
+    	}
+    	for(Block block:res.getBlocks()) {
+    		temp = new JSONObject();
+    		type = block.getBlockType();
+    		text = block.getText();
+    		left = block.getGeometry().getBoundingBox().getLeft();
+    		top = block.getGeometry().getBoundingBox().getTop();
+    		if((type.equals("LINE")) && !(Math.abs((int)(left*100)-base)<3) && (int)(top*100) >= baseTop) {
+    			temp.put("left",(int)(left*100));
+    			temp.put("text",text);
+    			temp.put("top",top);
+    			ret.put(ind,temp);
+    			ind+=1;
+    		}
+    	}
+    	return ret;
+    }
     public static void main(String arg[]) throws Exception {
         
         // The S3 bucket and document
-        String document = "Test.PNG";
+        String document = "Cambion.PNG";
         String bucket = "samunbucket";
 
         
@@ -84,15 +122,26 @@ public class DocumentText extends JPanel {
 
         DetectDocumentTextResult result = client.detectDocumentText(request);
         
-        //reading text and copying it to files
+        
+        //Creating a JSONObject object
+        JSONObject jsonObject = objectify(result);
+        
         String res = "";
+        String res2 ="";
+        for(int i =1;i<=51;i++) {
+        	res = res + jsonObject.get(i).toString() + "\n";
+        }
+
+        //reading text and copying it to files
         for(Block block:result.getBlocks()) {
         	if(block.getBlockType().equals("LINE")) {
-        		res = res + String.valueOf(block.getGeometry().getBoundingBox().getLeft())+" "+ block.getText() + "\n";
+        		res2 = res2 + String.valueOf(block.getGeometry().getBoundingBox().getLeft())+" "+ block.getText()+" "+String.valueOf(block.getGeometry().getBoundingBox().getTop())+"\n";
         	}
+
         }
-        System.out.println(res);
+        System.out.println(res2);
         saveString(res);
+        //saveString(jsonObject.toJSONString());
         
     }
 }
