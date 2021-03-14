@@ -5,14 +5,18 @@ package com.example.myapp.myapp;
 import java.lang.*;
 import java.awt.*;
 import java.awt.image.BufferedImage;
-import java.util.List;
+
 import java.io.File;  // Import the File class
 import java.io.IOException;  // Import the IOException class to handle errors
 import java.io.FileWriter;   // Import the FileWriter class
 import javax.swing.*;
+import com.amazonaws.regions.Regions;
+import com.amazonaws.AmazonServiceException;
+
+import com.amazonaws.SdkClientException;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
-import com.amazonaws.services.s3.model.S3ObjectInputStream;
+
 import com.amazonaws.client.builder.AwsClientBuilder.EndpointConfiguration;
 import com.amazonaws.services.textract.AmazonTextract;
 import com.amazonaws.services.textract.AmazonTextractClientBuilder;
@@ -21,6 +25,8 @@ import com.amazonaws.services.textract.model.DetectDocumentTextRequest;
 import com.amazonaws.services.textract.model.DetectDocumentTextResult;
 import com.amazonaws.services.textract.model.Document;
 import com.amazonaws.services.textract.model.S3Object;
+import com.amazonaws.services.s3.model.DeleteObjectsRequest;
+import com.amazonaws.services.s3.model.DeleteObjectsResult;
 import org.json.simple.JSONObject;
 
 public class DocumentText extends JPanel {
@@ -67,11 +73,11 @@ public class DocumentText extends JPanel {
     	JSONObject temp;
     	String type, text;
     	Float left, top;
-    	int base = 10;  //Cambion start
+    	int base = 3;  //Cambion start
     	//int base = 8;	//Imp start
     	int ind = 1;
-    	int baseTop = 44;
-    	int danger = 100;
+    	int baseTop = 3;
+
     	for(Block block:res.getBlocks()) {
     		temp = new JSONObject();
     		type = block.getBlockType();
@@ -105,18 +111,20 @@ public class DocumentText extends JPanel {
     public static void main(String arg[]) throws Exception {
         
         // The S3 bucket and document
-        String document = "Cambion.PNG";
+        String document = "ExampleMonster.PNG";
         String bucket = "samunbucket";
-
+        Regions clientRegion = Regions.US_EAST_2;
         
-
         // Call DetectDocumentText
         EndpointConfiguration endpoint = new EndpointConfiguration(
                 "https://textract.us-east-2.amazonaws.com", "us-east-2");
         AmazonTextract client = AmazonTextractClientBuilder.standard()
                 .withEndpointConfiguration(endpoint).build();
 
-
+        AmazonS3 s3Client = AmazonS3ClientBuilder.standard()
+                .withRegion(clientRegion)
+                .build();
+        
         DetectDocumentTextRequest request = new DetectDocumentTextRequest()
             .withDocument(new Document().withS3Object(new S3Object().withName(document).withBucket(bucket)));
 
@@ -126,9 +134,9 @@ public class DocumentText extends JPanel {
         //Creating a JSONObject object
         JSONObject jsonObject = objectify(result);
         
-        String res = "";
+        String res = " ";
         String res2 ="";
-        for(int i =1;i<=51;i++) {
+        for(int i =1;i<=77;i++) { //Shadesteel- 47,  IMP- 77,  Cambion-71
         	res = res + jsonObject.get(i).toString() + "\n";
         }
 
@@ -143,5 +151,23 @@ public class DocumentText extends JPanel {
         saveString(res);
         //saveString(jsonObject.toJSONString());
         
+        DeleteObjectsRequest multiObjectDeleteRequest = new DeleteObjectsRequest(bucket)
+                .withKeys(document)
+                .withQuiet(false);
+        
+        try {
+	        DeleteObjectsResult delObjRes = s3Client.deleteObjects(multiObjectDeleteRequest);
+	        int successfulDeletes = delObjRes.getDeletedObjects().size();
+	        System.out.println(successfulDeletes + " objects successfully deleted.");
+        }
+        catch (AmazonServiceException e) {
+            // The call was transmitted successfully, but Amazon S3 couldn't process 
+            // it, so it returned an error response.
+            e.printStackTrace();
+        } catch (SdkClientException e) {
+            // Amazon S3 couldn't be contacted for a response, or the client
+            // couldn't parse the response from Amazon S3.
+            e.printStackTrace();
+        }
     }
 }
