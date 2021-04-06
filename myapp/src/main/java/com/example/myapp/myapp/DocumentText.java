@@ -6,10 +6,17 @@ import java.lang.*;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import java.io.File;  // Import the File class
 import java.io.IOException;  // Import the IOException class to handle errors
 import java.io.FileWriter;   // Import the FileWriter class
 import javax.swing.*;
+
+
 import com.amazonaws.regions.Regions;
 import com.amazonaws.AmazonServiceException;
 
@@ -18,6 +25,7 @@ import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 
 import com.amazonaws.client.builder.AwsClientBuilder.EndpointConfiguration;
+
 import com.amazonaws.services.textract.AmazonTextract;
 import com.amazonaws.services.textract.AmazonTextractClientBuilder;
 import com.amazonaws.services.textract.model.Block;
@@ -108,6 +116,44 @@ public class DocumentText extends JPanel {
     	}
     	return ret;
     }
+ // Creates an SNS topic and SQS queue. The queue is subscribed to the topic. 
+    static void CreateTopicandQueue()
+    {
+        //create a new SNS topic
+        snsTopicName="AmazonTextractTopic" + Long.toString(System.currentTimeMillis());
+        CreateTopicRequest createTopicRequest = new CreateTopicRequest(snsTopicName);
+        CreateTopicResult createTopicResult = sns.createTopic(createTopicRequest);
+        snsTopicArn=createTopicResult.getTopicArn();
+        
+        //Create a new SQS Queue
+        sqsQueueName="AmazonTextractQueue" + Long.toString(System.currentTimeMillis());
+        final CreateQueueRequest createQueueRequest = new CreateQueueRequest(sqsQueueName);
+        sqsQueueUrl = sqs.createQueue(createQueueRequest).getQueueUrl();
+        sqsQueueArn = sqs.getQueueAttributes(sqsQueueUrl, Arrays.asList("QueueArn")).getAttributes().get("QueueArn");
+        
+        //Subscribe SQS queue to SNS topic
+        String sqsSubscriptionArn = sns.subscribe(snsTopicArn, "sqs", sqsQueueArn).getSubscriptionArn();
+        
+        // Authorize queue
+          Policy policy = new Policy().withStatements(
+                  new Statement(Effect.Allow)
+                  .withPrincipals(Principal.AllUsers)
+                  .withActions(SQSActions.SendMessage)
+                  .withResources(new Resource(sqsQueueArn))
+                  .withConditions(new Condition().withType("ArnEquals").withConditionKey("aws:SourceArn").withValues(snsTopicArn))
+                  );
+                  
+
+          Map queueAttributes = new HashMap();
+          queueAttributes.put(QueueAttributeName.Policy.toString(), policy.toJson());
+          sqs.setQueueAttributes(new SetQueueAttributesRequest(sqsQueueUrl, queueAttributes)); 
+          
+
+         System.out.println("Topic arn: " + snsTopicArn);
+         System.out.println("Queue arn: " + sqsQueueArn);
+         System.out.println("Queue url: " + sqsQueueUrl);
+         System.out.println("Queue sub arn: " + sqsSubscriptionArn );
+     }
     public static void main(String arg[]) throws Exception {
         
         // The S3 bucket and document
