@@ -1,8 +1,10 @@
 package com.example.myapp.myapp;
 
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -253,9 +255,11 @@ public class DocumentProcessor {
             e.printStackTrace();
           }
         try {
-            FileWriter myWriter = new FileWriter("C:\\Users\\Sam\\Documents\\toString.txt");
-            myWriter.append(str);
-            myWriter.close();
+            FileWriter myWriter = new FileWriter("C:\\Users\\Sam\\Documents\\toString.txt", true);
+            BufferedWriter b = new BufferedWriter(myWriter);
+            PrintWriter save = new PrintWriter(b);
+            save.println(str);
+            save.close();
             System.out.println("Successfully wrote to the file.");
           } catch (IOException e) {
             System.out.println("An error occurred.");
@@ -365,8 +369,9 @@ public class DocumentProcessor {
 	            		if(Lact) {//saving the statblock
 	            			Llen = checkActions(tempL) || Llen;
 	            			//System.out.println(Llen);
-	            			if(pageL == Cpage && Llast-Ltlast < 0.035){//checking for end of statblock
+	            			if(pageL == Cpage && Llast-Ltlast < 0.035 ){//checking for end of statblock	            				
 	            				Lbuf = Lbuf+tempL;
+	            				
 	            			}
 	            			else { 
 	            				if(!Llen) {
@@ -424,7 +429,7 @@ public class DocumentProcessor {
 	            			
 	            			}
 	            		if(Ract) {
-	            			if(pageR == Cpage && Rlast-Rtlast<0.035){
+	            			if(pageR == Cpage && Rlast-Rtlast<0.035 /*&& !(checkLegal(tempR) && !checkActions(tempR))*/){
 	            				Rbuf = Rbuf+tempR;
 	            			}
 	            			else if(checkActions(tempR)) {
@@ -470,7 +475,7 @@ public class DocumentProcessor {
                 if( ((c>0)&&(ch[c]!=' ')&&(ch[c-1]==' ')) || ((ch[0]!=' ')&&(c==0)) )  
                     count++; 
             }
-        	if(count > 8|| count<3) return false;
+        	if(count >= 8|| count < 3) return false;
         	
         	for(int i =0; i < sizes.length; i++)
             {
@@ -485,7 +490,7 @@ public class DocumentProcessor {
   //check if string contains item from a list
     public static boolean checkActions(String inputStr)
     {
-    	String[] actions = {"ACTIONS","LEGENDARY ACTIONS", "REACTIONS","ACTI0NS"}; 
+    	String[] actions = {"ACTIONS","LEGENDARY ACTIONS", "REACTIONS","ACTI0NS","STR","DEX","CON","INT","wis","CHA"}; 
     	String[] avoid = {"LAIR","REGIONAL"};
     	for(int i =0; i < avoid.length; i++)
         {
@@ -522,8 +527,8 @@ public class DocumentProcessor {
      
     	try {
         	Double.parseDouble(inputStr);
-        } catch (NumberFormatException e) {
-        	return inputStr.equals(inputStr.toUpperCase());
+        } catch (NumberFormatException e1) {     	
+       		return inputStr.equals(inputStr.toUpperCase());
         }
     	return false;
     }
