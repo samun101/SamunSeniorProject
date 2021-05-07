@@ -100,6 +100,7 @@ public class DocumentProcessor {
         
         
     }
+    
     // Creates an SNS topic and SQS queue. The queue is subscribed to the topic. 
     static void CreateTopicandQueue()
     {
@@ -360,6 +361,7 @@ public class DocumentProcessor {
 		            				Lact = true;
 		            				Lbuf = Lbuf + tempL;
 		            				tempL = "";
+		            				Llen = false;
 		            			}
 		            			else {
 		            				Lcount++;
@@ -367,11 +369,10 @@ public class DocumentProcessor {
 		            		}
 	            		}
 	            		if(Lact) {//saving the statblock
-	            			Llen = checkActions(tempL) || Llen;
-	            			//System.out.println(Llen);
-	            			if(pageL == Cpage && Llast-Ltlast < 0.035 ){//checking for end of statblock	            				
+	            			Llen = (checkActions(tempL)||Llen);
+	            			System.out.println(Llen);
+	            			if(pageL == Cpage && Llast-Ltlast < 0.035){//checking for end of statblock	            				
 	            				Lbuf = Lbuf+tempL;
-	            				
 	            			}
 	            			else { 
 	            				if(!Llen) {
@@ -429,7 +430,7 @@ public class DocumentProcessor {
 	            			
 	            			}
 	            		if(Ract) {
-	            			if(pageR == Cpage && Rlast-Rtlast<0.035 /*&& !(checkLegal(tempR) && !checkActions(tempR))*/){
+	            			if(pageR == Cpage && Rlast-Rtlast<0.035 ){
 	            				Rbuf = Rbuf+tempR;
 	            			}
 	            			else if(checkActions(tempR)) {
@@ -490,7 +491,7 @@ public class DocumentProcessor {
   //check if string contains item from a list
     public static boolean checkActions(String inputStr)
     {
-    	String[] actions = {"ACTIONS","LEGENDARY ACTIONS", "REACTIONS","ACTI0NS","STR","DEX","CON","INT","wis","CHA"}; 
+    	String[] actions = {"ACTIONS","LEGENDARY ACTIONS", "REACTIONS","ACTI0NS"}; 
     	String[] avoid = {"LAIR","REGIONAL"};
     	for(int i =0; i < avoid.length; i++)
         {
